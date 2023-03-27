@@ -2,7 +2,7 @@
 #include "MaskMultiply.hpp"
 #include "Compression alternatives/Byte_RLE.hpp"
 #include "Compression alternatives/Bit_RLE.hpp"
-#include "boost/filesystem.hpp"
+#include "CLI.hpp"
 
 using namespace std;
 static_assert(sizeof(uint8_t) == 1, "");
@@ -10,24 +10,22 @@ static_assert(sizeof(uint8_t) == 1, "");
 /*
  * char - unsigned by default
  * 0 - signed
- * 1- unsigned
+ * 1 - unsigned
  * */
-
 
 int main(int argc, char **argv)
 {
     std::ios_base::sync_with_stdio(false);
 
-    std::ifstream first{"../test data/test 1/first.hpp", std::ios::binary};
-    std::ifstream second{"../test data/test 1/second.hpp", std::ios::binary};
-    std::ofstream out{"../test data/test 1/out.hpp", std::ios::binary};
+//    CLI cli{boost::filesystem::directory_entry(boost::filesystem::current_path().parent_path())};
+//    cli.add("test data/test 1/first.hpp");
+//    cli.update("test data/test 1/first.hpp");
 
-    MaskMultiply mask(first, second, out);
-    mask.createMask1();
-    out.close();
-    std::ifstream check{"../test data/test 1/out.hpp", std::ios::binary};
-    std::cout << check.rdbuf();
-
+    boost::filesystem::current_path(boost::filesystem::current_path().parent_path());
+    MaskMultiply::createMask8("test data/test 2/curr.hpp",
+                                "test data/test 2/prev.hpp", "test data/test 2/mask.hpp");
+    MaskMultiply::createMask8("test data/test 2/curr.hpp",
+                                "test data/test 2/mask.hpp", "test data/test 2/prev.hpp");
 
     return 0;
 }

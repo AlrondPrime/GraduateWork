@@ -16,7 +16,10 @@ set(SOURCE_FILES
         src/main.cpp
         "src/MaskMultiply.hpp"
         "src/Byte.hpp"
-        "src/Compression alternatives/Byte_RLE.hpp" "src/Compression alternatives/Bit_RLE.hpp" src/TestMask.hpp)
+        "src/Compression alternatives/Byte_RLE.hpp"
+        "src/Compression alternatives/Bit_RLE.hpp"
+        src/TestMask.hpp
+        src/CLI.hpp)
 
 add_executable(GraduateWork ${SOURCE_FILES})
 target_link_libraries(GraduateWork ${Boost_LIBRARIES})

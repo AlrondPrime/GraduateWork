@@ -1,8 +1,10 @@
-#include "pch.h"
-
 #ifndef GRADUATEWORK_TESTMASK_HPP
 #define GRADUATEWORK_TESTMASK_HPP
-    class MaskMultiply
+
+#include "pch.h"
+
+
+    class MaskMultiply_test
 {
     static constexpr unsigned long long s_1Kb = 1 * 1000 * 8;
     static constexpr unsigned long long s_500Kb = 500 * 1000 * 8;
@@ -13,7 +15,7 @@
     std::vector<unsigned long long> arr2;
     std::vector<unsigned long long> arr3;
 
-    MaskMultiply()
+    MaskMultiply_test()
     {
         arr1.resize(s_100Mb / 8);
         arr2.resize(arr1.size());
@@ -76,4 +78,5 @@
         std::cout << "Total " << elapsed.count() << " ms\n";
     }
 };
+
 #endif //GRADUATEWORK_TESTMASK_HPP

@@ -1,3 +1,6 @@
+#ifndef GRADUATEWORK_BYTE_HPP
+#define GRADUATEWORK_BYTE_HPP
+
 #include "pch.h"
 
 class Byte
@@ -89,3 +92,5 @@ std::ofstream &operator<<(std::ofstream &out, Byte byte)
     out << byte.to_uint8_t();
     return out;
 }
+
+#endif // GRADUATEWORK_BYTE_HPP
