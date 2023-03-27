@@ -1,2 +1,0 @@
-ABCDEFGH
-123

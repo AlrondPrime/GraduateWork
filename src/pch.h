@@ -4,6 +4,9 @@
 #include <array>
 #include <bitset>
 #include <boost/filesystem.hpp>
+#include <boost/utility/string_view.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/exception/all.hpp>
 #include <cassert>
 #include <chrono>
 #include <filesystem>
@@ -24,6 +27,4 @@ enum class stream
     flush
 };
 
-
-
-#endif //GRADUATEWORK_PCH_H
+#endif // GRADUATEWORK_PCH_H
