@@ -3,7 +3,6 @@
 
 #include "pch.h"
 
-
     class MaskMultiply_test
 {
     static constexpr unsigned long long s_1Kb = 1 * 1000 * 8;
