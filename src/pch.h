@@ -3,6 +3,9 @@
 
 #include <array>
 #include <bitset>
+#include <boost/asio.hpp>
+#include <boost/asio/ts/buffer.hpp>
+#include <boost/asio/ts/internet.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/filesystem.hpp>
@@ -25,6 +28,8 @@
 #include <vector>
 
 namespace bfs = boost::filesystem;
+
+using namespace std::literals::string_literals;
 
 enum class stream {
     flush

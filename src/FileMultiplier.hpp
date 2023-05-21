@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "Log.hpp"
+#include "logger/Logger.hpp"
 
 using BUFFER_TYPE = uint64_t;
 static constexpr int BUFFER_SIZE = sizeof(BUFFER_TYPE);
@@ -52,8 +53,8 @@ public:
     FileMultiplier()
     = default;
 
-    FileMultiplier(std::ifstream &first, std::ifstream &second, std::ofstream &out)
-            : first_stream(std::move(first)), second_stream(std::move(second)), out_stream(std::move(out)) {}
+    /*FileMultiplier(std::ifstream &first, std::ifstream &second, std::ofstream &out)
+            : first_stream(std::move(first)), second_stream(std::move(second)), out_stream(std::move(out)) {}*/
 
     /** @brief Produces diff file which represents changes between first and second files
      * @details
@@ -66,15 +67,15 @@ public:
      * @param prev Previous version of the file
      * @param diff Resultant file which represents changes between first and second files
      */
-    static void multiplyFiles_8(const boost::filesystem::path &curr,
+    void multiplyFiles_8(const boost::filesystem::path &curr,
                                 const boost::filesystem::path &prev,
                                 const boost::filesystem::path &diff) {
 #ifdef _DEBUG
-        multiplyLog << "Multiplying files:"
+        log() << "Multiplying files:"
                     << "\n\tcurr=\t\'" << curr.string()
                     << "\'\n\tprev=\t\'" << prev.string()
                     << "\'\n\tdiff=\t\'" << diff.string()
-                    << "\'" << std::endl;
+                    << "\'";
 #endif
 
         if (!exists(curr) || !exists(prev)) {
@@ -125,10 +126,10 @@ public:
 
 
         if (first_stream.eof()) {
-            multiplyLog << "First stream ended" << std::endl;
+            log() << "First stream ended";
             out_stream << second_stream.rdbuf();
         } else if (second_stream.eof()) {
-            multiplyLog << "Second stream ended" << std::endl;
+            log() << "Second stream ended";
             out_stream << first_stream.rdbuf();
         }
     }
@@ -136,7 +137,7 @@ public:
     /** @brief Produces mask file which represents changes between first and second files
      * @details Processes 1 byte at a time
      */
-    void multiplyFiles_1() {
+    /*void multiplyFiles_1() {
         char first_buffer{}, second_buffer{}, out_buffer{};
 
         while (first_stream.read(&first_buffer, sizeof first_buffer) &&
@@ -151,14 +152,15 @@ public:
         } else if (second_stream.eof()) {
             out_stream << first_stream.rdbuf();
         } else {
-            multiplyLog << "Something went wrong" << '\n';
+            log() << "Something went wrong" << '\n';
         }
-    }
+    }*/
 
 private:
-    std::ifstream first_stream;
+/*    std::ifstream first_stream;
     std::ifstream second_stream;
-    std::ofstream out_stream;
+    std::ofstream out_stream;*/
+    logger::Logger log{"FileMultiplier"};
 };
 
 #endif //GRADUATEWORK_FILEMULTIPLIER_HPP

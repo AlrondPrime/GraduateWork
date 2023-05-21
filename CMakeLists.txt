@@ -6,7 +6,7 @@ set(CMAKE_CXX_COMPILER  "C:/Program Files/LLVM/bin/clang++.exe")
 set(CMAKE_RC_COMPILER  "llvm-rc")
 project(GraduateWork)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(Boost_NO_WARN_NEW_VERSIONS 1)
 #set(Boost_DEBUG ON)
@@ -16,11 +16,16 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 set(PCH src/pch.h)
 set(CLI src/cli/CLI.hpp)
-set(VCS "src/version controller/VersionController.hpp" "src/version controller/PathResolver.hpp")
+set(VCS
+        "src/version controller/VersionController.hpp"
+        "src/version controller/PathResolver.hpp")
+set(NET_COMMON
+        src/net/Message.hpp
+        src/net/ts_deque.hpp
+        src/net/Connection.hpp)
 set(SOURCE_FILES
         ${CLI}
         ${VCS}
-        src/main.cpp
         src/FileMultiplier.hpp
         src/Byte.hpp
         "src/Compression alternatives/Byte_RLE.hpp"
@@ -28,9 +33,18 @@ set(SOURCE_FILES
         src/TestMask.hpp
         src/Log.hpp)
 
-#add_compile_definitions(DEBUG)
+add_executable(Client
+        src/Client.cpp
+        src/net/Client.hpp
+        ${NET_COMMON})
+target_link_libraries(Client ${Boost_LIBRARIES})
+target_precompile_headers(Client
+        PRIVATE ${PCH})
 
-add_executable(GraduateWork ${SOURCE_FILES})
-target_link_libraries(GraduateWork ${Boost_LIBRARIES})
-target_precompile_headers(GraduateWork
+add_executable(Server
+        src/Server.cpp
+        src/net/Server.hpp
+        ${NET_COMMON})
+target_link_libraries(Server ${Boost_LIBRARIES})
+target_precompile_headers(Server
         PRIVATE ${PCH})

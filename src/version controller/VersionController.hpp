@@ -5,17 +5,26 @@
 #include "../Log.hpp"
 #include "../FileMultiplier.hpp"
 #include "Resolver.hpp"
+#include "../net/Client.hpp"
+#include "../net/Message.hpp"
 
 namespace vcs {
     class VersionController {
     public:
+        VersionController() {
+            _net_client.root(_root_dir);
+            _net_client.connectToServer(_host, _port);
+
+            _net_client.mainLoop();
+//            _net_client.sendFile("Data.txt");
+        }
+
         /// @brief Add file under version control system
         void add(const bfs::path &pathToFile) {
 #ifdef _DEBUG
-            vcsLog << "Add" << std::endl;
+            log() << "Add";
 #endif
             bfs::path versions_folder{fileResolver.versionsFolder(pathToFile)};
-            std::cout << "versions_folder " << versions_folder << std::endl;
             // Check if folder for storing current file versions exists
             if (!bfs::exists(versions_folder) ||
                 !bfs::is_directory(versions_folder))
@@ -26,14 +35,15 @@ namespace vcs {
                 }
 
             // Save current file state to calculate it's diff in future
-            _copyFile(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
+            _copy(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
+            _net_client.sendFile(pathToFile);
         }
 
         /// @brief Update changed file
         /// @details Calculate current file diff and save it as version file
         void update(const bfs::path &pathToFile) {
 #ifdef _DEBUG
-            vcsLog << "Update" << std::endl;
+            log() << "Update";
 #endif
             // Check if versions folder of current file is empty
             if (bfs::is_empty(fileResolver.versionsFolder(pathToFile))) {
@@ -52,10 +62,10 @@ namespace vcs {
                 postfix = strtol(&previous_filename.back(), nullptr, 10) + 1;
 
             bfs::path version{_createFilename(postfix)};
-            FileMultiplier::multiplyFiles_8(fileResolver.storage(pathToFile),
+            _file_multiplier.multiplyFiles_8(fileResolver.storage(pathToFile),
                                             fileResolver.copy(pathToFile),
                                             fileResolver.versionsFolder(pathToFile) / version);
-            _copyFile(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
+            _copy(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
         }
 
         /**
@@ -64,7 +74,7 @@ namespace vcs {
          */
         void restore(const bfs::path &pathToVersion) {
 #ifdef _DEBUG
-            vcsLog << "Restore" << std::endl;
+            log() << "Restore";
 #endif
             bool found = false;
             std::vector<bfs::path> versions;
@@ -85,10 +95,10 @@ namespace vcs {
             }
 
             for (auto &version: versions) {
-                FileMultiplier::multiplyFiles_8(versionResolver.copy(pathToVersion),
+                _file_multiplier.multiplyFiles_8(versionResolver.copy(pathToVersion),
                                                 version,
                                                 versionResolver.storage(pathToVersion));
-                _copyFile(versionResolver.storage(pathToVersion), versionResolver.copy(pathToVersion));
+                _copy(versionResolver.storage(pathToVersion), versionResolver.copy(pathToVersion));
             }
 
             for (auto &version: versions) {
@@ -129,18 +139,18 @@ namespace vcs {
                 }
             }
 #ifdef _DEBUG
-            vcsLog << "Latest version file found:\'" << last_version.string() << "\'" << std::endl;
+            log() << "Latest version file found:\'" << last_version.string() << "\'";
 #endif
             return last_version;
         }
 
         /// @brief Simply copies a file
-        bool _copyFile(const bfs::path &from, const bfs::path &to) {
+        bool _copy(const bfs::path &from, const bfs::path &to) {
 #ifdef _DEBUG
-            vcsLog << "Copying file"
+            log() << "Copying file"
                    << "\n\tfrom\t\'" << from.string()
                    << "\'\n\tto\t\'" << to.string()
-                   << "\'" << std::endl;
+                   << "\'";
 #endif
             return bfs::copy_file(from, to,
                                   bfs::copy_options::overwrite_existing);
@@ -149,11 +159,18 @@ namespace vcs {
         /// @brief Simply removes a file
         bool _remove(const bfs::path &p) {
 #ifdef _DEBUG
-            vcsLog << "Deleting file \'" << p.string() << "\'" << std::endl;
+            log() << "Deleting file \'" << p.string() << "\'";
 #endif
             return bfs::remove(p);
         }
 
+        logger::Logger log{"VCS"};
+        std::string _host{"localhost"};
+        uint16_t _port{60000};
+        std::string _root_dir{R"(C:\Users\alrondprime\CLionProjects\GraduateWork\ClientStorage)"};
+        FileMultiplier _file_multiplier;
+
+        net::Client _net_client;
     };
 }
 
