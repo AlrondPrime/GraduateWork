@@ -50,6 +50,10 @@ namespace net {
             _connection.sendMsg(msg);
         }
 
+        void sendMsg(Message &&msg) {
+            _connection.sendMsg(std::move(msg));
+        }
+
         void sendFile(const bfs::path &root, const bfs::path &relPath) {
             log() << "Sending file \'" << root.string() << "\' / \'" << relPath.string() << "\'";
             _connection.sendFile(root, relPath);

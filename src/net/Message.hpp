@@ -45,8 +45,11 @@ namespace net {
                 return "FileHeader";
             case MsgType::FileTransfer:
                 return "FileTransfer";
+            case MsgType::RestoreVersion:
+                return "RestoreVersion";
             default:
-                return "";
+                std::cerr << "Has no to_string cast for this enumeration item!";
+                exit(-1);
         }
     }
 

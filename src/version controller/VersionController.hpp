@@ -99,6 +99,10 @@ namespace vcs {
             for (auto &version: versions) {
                 _remove(version);
             }
+
+            net::Message::MessageHeader messageHeader{net::MsgType::RestoreVersion};
+            net::Message msg{messageHeader, pathToVersion.string()};
+            _net_client.sendMsg(std::move(msg));
         }
 
     private:

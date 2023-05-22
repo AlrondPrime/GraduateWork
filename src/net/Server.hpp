@@ -52,24 +52,26 @@ namespace net {
                         } else {
                             log() << "New Connection Error: " << ec.message();
                         }
-//                        waitForClients();
+                        waitForClients();
                     });
         }
 
         void msgHandler(const Message &msg) {
 //            log() << msg;
+
             switch (msg.header().msgType()) {
                 case MsgType::FileHeader: {
                     log() << "Handling " << to_string(msg.header().msgType());
                     auto pos = msg.body().rfind('\n');
                     if (pos == std::string::npos) {
                         log() << "Corrupted File Header";
+                        return;
                     }
 
                     auto file_size = strtol(msg.body().c_str() + pos, nullptr, 10);
                     packages_to_wait = file_size / MAX_BODY_SIZE + 1;
 
-                    bfs::path path{_root_dir.path().string() + "\\" +
+                    bfs::path path{_root_dir.path() /
                                    msg.body().substr(0, pos)};
 
                     // Check if folder for storing current file versions exists
@@ -83,6 +85,7 @@ namespace net {
                     ofs.open(path.string());
                     if (!ofs.is_open()) {
                         log() << "Can't open ofstream";
+                        return;
                     } else
                         log() << "Opened file \'" << path.string() << "\'";
 
@@ -92,6 +95,7 @@ namespace net {
                     log() << "Handling " << to_string(msg.header().msgType());
                     if (!ofs.is_open()) {
                         log() << "Ofstream isn't opened";
+                        return;
                     }
                     ofs << msg.body();
                     --packages_to_wait;
@@ -102,8 +106,40 @@ namespace net {
 
                     break;
                 }
-                default: {
+                case MsgType::RestoreVersion: {
                     log() << "Handling " << to_string(msg.header().msgType());
+                    bfs::path path{_root_dir.path() / msg.body()};
+                    if (!bfs::exists(path)) {
+                        log() << "Path or directory \'" << path.string() << "\' does not exist";
+                        return;
+                    }
+
+                    bool found = false;
+                    std::vector<bfs::path> versions;
+
+                    for (auto &iter: bfs::directory_iterator(path.parent_path())) {
+                        if (!is_regular_file(iter))
+                            continue;
+
+                        if (iter.path().extension() != path.extension())
+                            continue;
+
+                        if (iter.path().filename() == path.filename())
+                            found = true;
+
+                        if (found) {
+                            versions.insert(versions.begin(), iter);
+                        }
+                    }
+
+                    for (auto &version: versions) {
+                        bfs::remove(version);
+                    }
+
+                    break;
+                }
+                default: {
+                    log() << "Handling default " << to_string(msg.header().msgType());
                     break;
                 }
             }
