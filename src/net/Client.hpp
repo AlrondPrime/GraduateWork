@@ -50,8 +50,9 @@ namespace net {
             _connection.sendMsg(msg);
         }
 
-        void sendFile(const boost::filesystem::path &path) {
-            _connection.sendFile(_root_dir / path);
+        void sendFile(const bfs::path &root, const bfs::path &relPath) {
+            log() << "Sending file \'" << root.string() << "\' / \'" << relPath.string() << "\'";
+            _connection.sendFile(root, relPath);
         }
 
         void msgHandler(const Message &msg) {

@@ -72,12 +72,13 @@ namespace net {
                     bfs::path path{_root_dir.path().string() + "\\" +
                                    msg.body().substr(0, pos)};
 
-/*                    if (!bfs::exists(path))
+                    // Check if folder for storing current file versions exists
+                    if (!bfs::exists(path.parent_path()))
                         // ..if not, create this folder
                         if (!bfs::create_directories(path.parent_path())) {
                             log() << "ERROR at line " << __LINE__;
                             return;
-                        }*/
+                        }
 
                     ofs.open(path.string());
                     if (!ofs.is_open()) {

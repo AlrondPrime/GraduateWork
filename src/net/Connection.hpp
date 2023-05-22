@@ -53,26 +53,26 @@ namespace net {
                        });
         }
 
-        void sendFile(const boost::filesystem::path &path) {
-            if (!exists(path) || !is_regular_file(path)) {
-                log() << "File \'" << path.string() << "\' not found";
+        void sendFile(const bfs::path &root, const bfs::path &relPath) {
+            if (!exists(root / relPath) || !is_regular_file(root / relPath)) {
+                log() << "File \'" << (root / relPath).string() << "\' not found";
                 return;
             }
 
-            writeFileHeader(path.string());
+            writeFileHeader(root, relPath);
         }
 
-        void writeFileHeader(const boost::filesystem::path &path) {
-            auto file_size = boost::filesystem::file_size(path);
-            std::string body{path.filename().string() + "\n" + std::to_string(file_size)};
+        void writeFileHeader(const bfs::path &root, const bfs::path &relPath) {
+            auto file_size = bfs::file_size(root / relPath);
+            auto body{relPath.string() + "\n" + std::to_string(file_size)};
             Message msg{Message::MessageHeader{MsgType::FileHeader, MAX_BODY_SIZE},
                         std::move(body)};
             sendMsg(std::move(msg));
 
-            writeFileBody(path);
+            writeFileBody(root / relPath);
         }
 
-        void writeFileBody(const boost::filesystem::path &path) {
+        void writeFileBody(const bfs::path &path) {
             std::ifstream ifs{path.string()};
 
             if (!ifs.is_open()) {

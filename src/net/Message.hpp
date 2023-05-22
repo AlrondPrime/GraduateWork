@@ -31,6 +31,7 @@ namespace net {
         EmptyMessage,
         FileHeader,
         FileTransfer,
+        RestoreVersion,
         Disconnection
     };
 

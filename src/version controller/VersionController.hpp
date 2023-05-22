@@ -16,15 +16,12 @@ namespace vcs {
             _net_client.connectToServer(_host, _port);
 
             _net_client.mainLoop();
-//            _net_client.sendFile("Data.txt");
         }
 
         /// @brief Add file under version control system
         void add(const bfs::path &pathToFile) {
-#ifdef _DEBUG
             log() << "Add";
-#endif
-            bfs::path versions_folder{fileResolver.versionsFolder(pathToFile)};
+            bfs::path versions_folder{fileResolver.fileVersions(pathToFile)};
             // Check if folder for storing current file versions exists
             if (!bfs::exists(versions_folder) ||
                 !bfs::is_directory(versions_folder))
@@ -35,51 +32,49 @@ namespace vcs {
                 }
 
             // Save current file state to calculate it's diff in future
-            _copy(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
-            _net_client.sendFile(pathToFile);
+            _copy(fileResolver.main(pathToFile), fileResolver.copy(pathToFile));
+            _net_client.sendFile(versionResolver.versions(), pathToFile / pathToFile.filename());
         }
 
         /// @brief Update changed file
         /// @details Calculate current file diff and save it as version file
         void update(const bfs::path &pathToFile) {
-#ifdef _DEBUG
             log() << "Update";
-#endif
             // Check if versions folder of current file is empty
-            if (bfs::is_empty(fileResolver.versionsFolder(pathToFile))) {
+            if (bfs::is_empty(fileResolver.fileVersions(pathToFile))) {
                 // ..if yes, just copy current file there
                 add(pathToFile);
                 return;
             }
 
             std::string previous_filename =
-                    _getLastVersionFile(fileResolver.versionsFolder(pathToFile))
+                    _getLastVersionFile(fileResolver.fileVersions(pathToFile))
                             .stem().string();
             int postfix = 0;
-            // Check if previous version was found
+            // Check if previous filename was found
             if (!previous_filename.empty())
                 //..if yes, just increment it's postfix
                 postfix = strtol(&previous_filename.back(), nullptr, 10) + 1;
 
-            bfs::path version{_createFilename(postfix)};
-            _file_multiplier.multiplyFiles_8(fileResolver.storage(pathToFile),
+            bfs::path filename{_createFilename(postfix)};
+            _file_multiplier.multiplyFiles_8(fileResolver.main(pathToFile),
                                             fileResolver.copy(pathToFile),
-                                            fileResolver.versionsFolder(pathToFile) / version);
-            _copy(fileResolver.storage(pathToFile), fileResolver.copy(pathToFile));
+                                             fileResolver.fileVersions(pathToFile) / filename);
+            _copy(fileResolver.main(pathToFile), fileResolver.copy(pathToFile));
+            _net_client.sendFile(versionResolver.versions(), pathToFile / pathToFile.filename());
+            _net_client.sendFile(fileResolver.versions(), pathToFile / filename);
         }
 
         /**
-         * @brief Restore file in storage to corresponding version
+         * @brief Restore file in storage folder to corresponding version
          * @param pathToVersion Path to .version file
          */
         void restore(const bfs::path &pathToVersion) {
-#ifdef _DEBUG
             log() << "Restore";
-#endif
             bool found = false;
             std::vector<bfs::path> versions;
 
-            for (auto &iter: bfs::directory_iterator(versionResolver.versionsFolder(pathToVersion))) {
+            for (auto &iter: bfs::directory_iterator(versionResolver.fileVersions(pathToVersion))) {
                 if (!is_regular_file(iter))
                     continue;
 
@@ -97,8 +92,8 @@ namespace vcs {
             for (auto &version: versions) {
                 _file_multiplier.multiplyFiles_8(versionResolver.copy(pathToVersion),
                                                 version,
-                                                versionResolver.storage(pathToVersion));
-                _copy(versionResolver.storage(pathToVersion), versionResolver.copy(pathToVersion));
+                                                 versionResolver.main(pathToVersion));
+                _copy(versionResolver.main(pathToVersion), versionResolver.copy(pathToVersion));
             }
 
             for (auto &version: versions) {
@@ -138,29 +133,23 @@ namespace vcs {
                     last_version = iter;
                 }
             }
-#ifdef _DEBUG
             log() << "Latest version file found:\'" << last_version.string() << "\'";
-#endif
             return last_version;
         }
 
         /// @brief Simply copies a file
         bool _copy(const bfs::path &from, const bfs::path &to) {
-#ifdef _DEBUG
             log() << "Copying file"
                    << "\n\tfrom\t\'" << from.string()
                    << "\'\n\tto\t\'" << to.string()
                    << "\'";
-#endif
             return bfs::copy_file(from, to,
                                   bfs::copy_options::overwrite_existing);
         }
 
         /// @brief Simply removes a file
         bool _remove(const bfs::path &p) {
-#ifdef _DEBUG
             log() << "Deleting file \'" << p.string() << "\'";
-#endif
             return bfs::remove(p);
         }
 

@@ -4,7 +4,7 @@
 #include "PathResolver.hpp"
 
 namespace {
-    std::string versions_folder{R"(C:\Users\alrondprime\CLionProjects\GraduateWork\versions)"};
+    std::string versions_folder{R"(C:\Users\alrondprime\CLionProjects\GraduateWork\ClientStorage\versions)"};
     std::string storage_folder{R"(C:\Users\alrondprime\CLionProjects\GraduateWork\ClientStorage)"};
 }
 
