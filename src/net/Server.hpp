@@ -71,7 +71,7 @@ namespace net {
                     auto file_size = strtol(msg.body().c_str() + pos, nullptr, 10);
                     packages_to_wait = file_size / MAX_BODY_SIZE + 1;
 
-                    bfs::path path{_root_dir.path() /
+                    bfs::path path{_root_dir.path() / ".versions" /
                                    msg.body().substr(0, pos)};
 
                     // Check if folder for storing current file versions exists

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <bitset>
+#include "boost/program_options.hpp"
 #include <boost/asio.hpp>
 #include <boost/asio/ts/buffer.hpp>
 #include <boost/asio/ts/internet.hpp>
@@ -28,6 +29,8 @@
 #include <vector>
 
 namespace bfs = boost::filesystem;
+namespace bpo = boost::program_options;
+namespace ba = boost::asio;
 
 using namespace std::literals::string_literals;
 

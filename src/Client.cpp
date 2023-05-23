@@ -2,7 +2,7 @@
 #include "cli/CLI.hpp"
 #include "version controller/VersionController.hpp"
 
-static_assert(sizeof(uint8_t) == 1, "");
+static_assert(sizeof(uint8_t) == 1);
 
 /*
  * char - unsigned by default
@@ -13,10 +13,25 @@ static_assert(sizeof(uint8_t) == 1, "");
 int main(int argc, char *argv[]) {
     std::ios_base::sync_with_stdio(false);
 
-    // Set working directory to the project's root directory
-    boost::filesystem::current_path(boost::filesystem::current_path().parent_path());
+    std::string storagePath;
+    bpo::options_description config("Config");
+    config.add_options()
+            ("storagePath", bpo::value<std::string>(&storagePath));
+    bpo::variables_map variables_map;
+    bpo::store(bpo::parse_config_file("../Client.cfg", config), variables_map);
+    variables_map.notify();
 
-    vcs::VersionController version_controller;
+    if (!bfs::exists(storagePath) || !bfs::is_directory(storagePath)) {
+        std::cerr << "Path to storage \'" << storagePath << "\' does not exist!" << std::endl;
+        throw std::runtime_error("Path to storage does not exist!");
+    }
+
+    // Set working directory to the project's root directory
+//    bfs::current_path(bfs::current_path().parent_path());
+
+    bfs::create_directory(storagePath + "/.versions");
+
+    vcs::VersionController version_controller{storagePath};
     cli::CLI cli;
     cli.addBranch("add", [&](const bfs::path &path) { version_controller.add(path); });
     cli.addBranch("update", [&](const bfs::path &path) { version_controller.update(path); });
@@ -29,7 +44,7 @@ int main(int argc, char *argv[]) {
         std::cout << "(cli) ";
         std::cout.flush();
         std::getline(std::cin, buffer);
-        if (cli.resolveArgs(cli::split(buffer, ' ')) == -1)
+        if (cli.resolveArgs(cli::split(buffer)) == -1)
             break;
     }
 

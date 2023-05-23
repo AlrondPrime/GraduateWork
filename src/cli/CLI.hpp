@@ -3,24 +3,45 @@
 
 #include "../pch.h"
 #include "../Log.hpp"
-#include "../version controller/Resolver.hpp"
 
 namespace cli {
-    std::queue<std::string> split(const std::string &s, char delimiter) {
-    std::queue<std::string> result;
-    std::string token;
+    std::queue<std::string> split(const std::string &s) {
+        std::queue<std::string> result;
+        bool quoted{false};
 
-    size_t start{0};
-    size_t end{s.find(delimiter)};
-    while (end != std::string::npos) {
-        result.emplace(s.substr(start, end - start));
-        start = end + 1;
-        end = s.find(delimiter, start);
+        auto start{0};
+        auto end{0};
+        while (end < s.size()) {
+            if (s.at(end) == ' ' && !quoted) {
+                result.emplace(s.substr(start, end - start));
+                start = end + 1;
+                end = start;
+                continue;
+            }
+            if (s.at(end) == '\"') {
+                if (quoted) {
+                    ++start;
+                    result.emplace(s.substr(start, end - start));
+                    quoted = false;
+                    start = end + 2;
+                    end = start;
+                    continue;
+                } else {
+                    quoted = true;
+                }
+            }
+            ++end;
+        }
+        if (start < s.size())
+            result.emplace(s.substr(start, s.size()));
+
+        if (quoted) {
+            std::cerr << "Illegal command" << std::endl;
+            throw std::runtime_error("Illegal command");
+        }
+
+        return result;
     }
-    result.emplace(s.substr(start, end - start));
-
-    return result;
-}
 
     class CLI {
     public:

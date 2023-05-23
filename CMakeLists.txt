@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(Boost_NO_WARN_NEW_VERSIONS 1)
 #set(Boost_DEBUG ON)
 #set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.81.0 COMPONENTS filesystem REQUIRED)
+find_package(Boost 1.81.0 COMPONENTS filesystem program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 set(PCH src/pch.h)
