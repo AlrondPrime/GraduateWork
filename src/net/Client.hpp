@@ -6,13 +6,11 @@
 #include "Connection.hpp"
 
 namespace net {
-    using namespace boost;
-
     class Client {
     public:
         Client() :
                 _work(make_work_guard(_io_context)),
-                _connection(asio::ip::tcp::socket(_io_context), _io_context) {
+                _connection(ba::ip::tcp::socket(_io_context), _io_context) {
 
             _connection.setOnMessageHandler(
                     [this](const Message &message) { msgHandler(message); });
@@ -27,22 +25,22 @@ namespace net {
         }
 
         void connectToServer(const std::string &host, const uint16_t port) {
-            asio::ip::tcp::resolver resolver(_io_context);
+            ba::ip::tcp::resolver resolver(_io_context);
             _endpoints = resolver.resolve(host, std::to_string(port));
 
-            asio::async_connect(_connection.socket(), _endpoints,
-                                [this](std::error_code ec, const asio::ip::tcp::endpoint &endpoint) {
-                                    if (!ec) {
-                                        log() << "Connected to Server!";
-//                                        _connection.readHeader();
-                                    }
-                                });
+            ba::async_connect(_connection.socket(), _endpoints,
+                              [this](std::error_code ec, const ba::ip::tcp::endpoint &endpoint) {
+                                  if (!ec) {
+                                      log() << "Connected to Server!";
+                                        _connection.readHeader();
+                                        _connection.processIncoming();
+                                  }
+                              });
         }
 
-        // TODO: refactor later
         void mainLoop() {
 //            _io_context.run();
-          _context_thread = std::thread([this]() { _io_context.run(); });
+            _context_thread = std::thread([this]() { _io_context.run(); });
 
         }
 
@@ -59,26 +57,34 @@ namespace net {
             _connection.sendFile(root, relPath);
         }
 
+        void setOnMessageHandler(std::function<void(const Message &)> onMessageHandler) {
+            _connection.setOnMessageHandler(std::move(onMessageHandler));
+        }
+
+        void resetOnMessageHandler() {
+            _connection.resetOnMessageHandler();
+        }
+
         void msgHandler(const Message &msg) {
             log() << "[Client]" << msg;
         }
 
-        const filesystem::directory_entry &root() {
+        const bfs::directory_entry &root() {
             return _root_dir;
         }
 
-        void root(const filesystem::path &root) {
+        void root(const bfs::path &root) {
             _root_dir.assign(root);
         }
 
     private:
         logger::Logger log{"Client"};
-        asio::io_context _io_context;
-        asio::executor_work_guard<boost::asio::io_context::executor_type> _work;
-        asio::ip::tcp::resolver::results_type _endpoints;
+        ba::io_context _io_context;
+        ba::executor_work_guard<boost::asio::io_context::executor_type> _work;
+        ba::ip::tcp::resolver::results_type _endpoints;
         std::thread _context_thread;
         Connection _connection;
-        filesystem::directory_entry _root_dir;
+        bfs::directory_entry _root_dir;
     };
 }
 

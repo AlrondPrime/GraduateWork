@@ -1,4 +1,3 @@
-
 #include "net/Server.hpp"
 
 int main() {

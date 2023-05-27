@@ -1,29 +1,27 @@
 #ifndef NETWORKING_MESSAGE_HPP
 #define NETWORKING_MESSAGE_HPP
 
-#include <utility>
-
 #include "../pch.h"
 
 namespace net {
-    void print(const std::string &str, bool verbose = false) {
-        std::cout << "Message body:" << '\n';
-        std::cout << '\t';
-        std::cout << '\'';
+    void print(std::ostream &os, const std::string &str, bool verbose = false) {
+        os << "Message body:" << '\n';
+        os << '\t';
+        os << '\'';
         if (!verbose)
-            std::cout << str;
+            os << str;
         else
             for (auto ch: str) {
                 switch (ch) {
                     case '\0': {
-                        std::cout << "\\0";
+                        os << "\\0";
                         break;
                     }
                     default:
-                        std::cout << ch;
+                        os << ch;
                 }
             }
-        std::cout << '\'';
+        os << '\'';
     }
 
     enum class MsgType {
@@ -32,7 +30,9 @@ namespace net {
         FileHeader,
         FileTransfer,
         RestoreVersion,
-        Disconnection
+        CheckIntegrity,
+        RequestFiles,
+        RequestedFiles
     };
 
     constexpr const char *to_string(MsgType msgType) {
@@ -47,9 +47,14 @@ namespace net {
                 return "FileTransfer";
             case MsgType::RestoreVersion:
                 return "RestoreVersion";
+            case MsgType::CheckIntegrity:
+                return "CheckIntegrity";
+            case MsgType::RequestFiles:
+                return "RequestFiles";
+            case MsgType::RequestedFiles:
+                return "RequestedFiles";
             default:
-                std::cerr << "Has no to_string cast for this enumeration item!";
-                exit(-1);
+                throw std::runtime_error("Has no to_string cast for this enumeration item!");
         }
     }
 
@@ -128,6 +133,11 @@ namespace net {
                 _header(std::move(msg._header)), _body(std::move(msg._body)) {
         }
 
+        explicit Message(MsgType msgType, std::string body = "") :
+                Message(MessageHeader{msgType}, std::move(body)) {
+
+        }
+
         Message &operator=(const Message &msg) = default;
 
         MessageHeader &header() {
@@ -164,8 +174,8 @@ namespace net {
 
         friend std::ostream &operator<<(std::ostream &os, const Message &msg) {
             os << msg._header;
-            print(msg._body);
-//            os << "Message body: \'" << msg._body << "\'\n";
+            print(os, msg._body);
+
             return os;
         }
 

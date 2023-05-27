@@ -1,4 +1,3 @@
-
 #include "cli/CLI.hpp"
 #include "version controller/VersionController.hpp"
 
@@ -26,9 +25,6 @@ int main(int argc, char *argv[]) {
         throw std::runtime_error("Path to storage does not exist!");
     }
 
-    // Set working directory to the project's root directory
-//    bfs::current_path(bfs::current_path().parent_path());
-
     bfs::create_directory(storagePath + "/.versions");
 
     vcs::VersionController version_controller{storagePath};
@@ -36,13 +32,15 @@ int main(int argc, char *argv[]) {
     cli.addBranch("add", [&](const bfs::path &path) { version_controller.add(path); });
     cli.addBranch("update", [&](const bfs::path &path) { version_controller.update(path); });
     cli.addBranch("restore", [&](const bfs::path &path) { version_controller.restore(path); });
+    cli.addBranch("observe", [&](const bfs::path &path) { version_controller.addObservable(path); });
+    cli.addBranch("checkIntegrity", [&](const bfs::path &path) { version_controller.check_integrity(path); });
     cli.resolveArgs(argc, argv);
 
     // Going into endless cli loop
     std::string buffer;
     while (true) {
-        std::cout << "(cli) ";
-        std::cout.flush();
+//        std::cout << "(cli) ";
+//        std::cout.flush();
         std::getline(std::cin, buffer);
         if (cli.resolveArgs(cli::split(buffer)) == -1)
             break;
