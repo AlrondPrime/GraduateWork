@@ -2,7 +2,6 @@
 #define GRADUATEWORK_FILEMULTIPLIER_HPP
 
 #include "pch.h"
-#include "Log.hpp"
 #include "logger/Logger.hpp"
 
 using BUFFER_TYPE = uint64_t;

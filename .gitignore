@@ -1,5 +1,4 @@
 # Project exclude paths
 /cmake-build-debug/
-/test data/
-/versions/
 .clang-format
+*.cfg

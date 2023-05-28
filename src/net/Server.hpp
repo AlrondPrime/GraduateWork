@@ -13,7 +13,6 @@ namespace net {
                 _endpoint{ba::ip::tcp::v4(), port},
                 _acceptor{_io_context, _endpoint} {
 
-            _buffer.resize(MAX_BODY_SIZE);
         }
 
         virtual ~Server() {
@@ -34,12 +33,12 @@ namespace net {
             log() << "Started!";
         }
 
-        const bfs::directory_entry &root() {
-            return _root_dir;
+        const bfs::path &root() {
+            return _versions_dir;
         }
 
         void root(const bfs::path &root) {
-            _root_dir.assign(root);
+            _versions_dir.assign(root / ".versions");
         }
 
     private:
@@ -51,7 +50,7 @@ namespace net {
                                     socket.remote_endpoint().address(), socket.remote_endpoint().port())
                                     .to_string();
                             _connections.push_back(std::make_shared<Connection>(
-                                    std::move(socket), _io_context));
+                                    std::move(socket), _io_context, _versions_dir));
                             _connections.back()->setOnMessageHandler(
                                     [this](const Message &message) { _msgHandler(message); });
                             _connections.back()->readHeader();
@@ -64,65 +63,11 @@ namespace net {
         }
 
         void _msgHandler(const Message &msg) {
-            log() << msg;
+            log() << "Handling " << to_string(msg.header().msgType());
 
             switch (msg.header().msgType()) {
-                case MsgType::FileHeader: {
-                    log() << "Handling " << to_string(msg.header().msgType());
-
-                    // Try to parse json string got from message body
-                    try {
-                        bj::object object{bj::parse(msg.body()).as_object()};
-                        _path.assign(_root_dir.path() / ".versions" /
-                                     object.at("path").as_string());
-                        _file_size = static_cast<uintmax_t>(object.at("_file_size").as_int64());
-                        packages_to_wait = _file_size / MAX_BODY_SIZE + 1;
-                        _modification_time = object.at("_modification_time").as_int64();
-                    }
-                    catch (boost::exception &e) {
-                        std::cerr << "Corrupted File Header";
-                        std::cerr << diagnostic_information_what(e) << std::endl;
-                    }
-
-                    // Check if folder for storing current file versions exists
-                    if (!bfs::exists(_path.parent_path()))
-                        // ..if not, create this folder
-                        if (!bfs::create_directories(_path.parent_path())) {
-                            log() << "Can't create versions directory";
-                            return;
-                        }
-
-                    _ofs.open(_path.string());
-                    if (!_ofs.is_open()) {
-                        log() << "Can't open ofstream";
-                        return;
-                    } else
-                        log() << "Opened file \'" << _path.string() << "\'";
-
-                    break;
-                }
-                case MsgType::FileTransfer: {
-                    log() << "Handling " << to_string(msg.header().msgType());
-                    if (!_ofs.is_open()) {
-                        log() << "Ofstream isn't opened";
-                        return;
-                    }
-                    _ofs << msg.body();
-                    --packages_to_wait;
-                    if (packages_to_wait <= 0) {
-                        log() << "Whole file transferred";
-                        _ofs.close();
-                        bfs::last_write_time(_path, _modification_time);
-                        _path.assign("");
-                        _file_size = 0;
-                        _modification_time = 0;
-                    }
-
-                    break;
-                }
                 case MsgType::RestoreVersion: {
-                    log() << "Handling " << to_string(msg.header().msgType());
-                    bfs::path path{_root_dir.path() / msg.body()};
+                    bfs::path path{_versions_dir.path() / msg.body()};
                     if (!bfs::exists(path)) {
                         log() << "Path or directory \'" << path.string() << "\' does not exist";
                         return;
@@ -153,16 +98,15 @@ namespace net {
                 case MsgType::CheckIntegrity: {
                     bj::array paths;
                     for (auto &path:
-                    bfs::recursive_directory_iterator(_root_dir / ".versions")) {
+                            bfs::recursive_directory_iterator(_versions_dir)) {
                         if (bfs::is_regular_file(path) &&
-                            /* Check if it is not hidden folder and
-                             * is subdir of root server folder
-                             */
-                            (++path.path().lexically_relative(_root_dir).begin())->string().front() != '.') {
+                            // Check if it is not hidden folder and
+                            // is subdir of root server folder
+                            (++path.path().lexically_relative(_versions_dir).begin())->string().front() != '.') {
 
                             log() << "Emplace back \'"
-                            << path.path().lexically_relative(_root_dir / ".versions").string() << "\'";
-                            paths.emplace_back(path.path().lexically_relative(_root_dir / ".versions").string());
+                                  << path.path().lexically_relative(_versions_dir).string() << "\'";
+                            paths.emplace_back(path.path().lexically_relative(_versions_dir).string());
                         }
                     }
 
@@ -178,13 +122,13 @@ namespace net {
                     try {
                         paths = bj::parse(msg.body()).as_array();
                         for (auto &path: paths) {
-                            if (!bfs::exists(_root_dir / path.as_string())) {
+                            if (!bfs::exists(_versions_dir / path.as_string())) {
                                 log() << "Doesn't exist: \'"
                                       << path.as_string().c_str() << "\'";
                             } else {
                                 log() << "Found existing, sending : \'"
                                       << path.as_string().c_str() << "\'";
-                                _connections.back()->sendFile(_root_dir, path.as_string());
+                                _connections.back()->sendFile(_versions_dir, path.as_string());
                             }
                         }
                     }
@@ -197,7 +141,7 @@ namespace net {
                 }
 
                 default: {
-                    log() << "Handling default " << to_string(msg.header().msgType());
+                    log() << "Handling default";
                     break;
                 }
             }
@@ -211,15 +155,7 @@ namespace net {
         ba::ip::tcp::acceptor _acceptor;
         std::thread _context_thread;
         ts_deque<std::shared_ptr<Connection>> _connections;
-        bfs::directory_entry _root_dir;
-
-        // TODO: refactor later
-        size_t packages_to_wait = 0;
-        std::string _buffer;
-        std::ofstream _ofs;
-        bfs::path _path;
-        uintmax_t _file_size;
-        time_t _modification_time;
+        bfs::directory_entry _versions_dir;
     };
 }
 

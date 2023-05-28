@@ -109,7 +109,10 @@ namespace vcs {
                 if (iter.path().extension() != _filename_ext)
                     continue;
 
-                if (equivalent(iter.path(), pathToVersion))
+                /*if (equivalent(iter.path(), pathToVersion))
+                    found = true;*/
+
+                if (iter.path().filename() == pathToVersion.filename())
                     found = true;
 
                 if (found)
@@ -147,6 +150,7 @@ namespace vcs {
             }
             ifs.close();
 
+            bool changed{false};
             while (true) {
                 // TODO: refactor
                 if (!_blocked)
@@ -156,10 +160,16 @@ namespace vcs {
                         if (bfs::last_write_time(_file_resolver.main(item))
                             != bfs::last_write_time(_file_resolver.copy(item))) {
 
+                            changed = true;
                             _copy(_file_resolver.main(item),
                                   _file_resolver.copy(item));
                         }
                     }
+                if(changed)
+                    log() << "Observer found some changes";
+                else
+                     log() << "Observer didn't find any changes";
+
                 std::this_thread::sleep_for(1s);
             }
         }
@@ -197,7 +207,7 @@ namespace vcs {
                         paths = bj::parse(msg.body()).as_array();
                         for (auto &path: paths) {
                             if (!bfs::exists(_version_resolver.versionsDir() / path.as_string())
-                            && !bfs::exists(_file_resolver.storageDir() / path.as_string())) {
+                                && !bfs::exists(_file_resolver.storageDir() / path.as_string())) {
                                 log() << "Doesn't exist: \'"
                                       << path.as_string().c_str() << "\'";
                                 paths_to_reply.push_back(path);
@@ -216,69 +226,18 @@ namespace vcs {
                         }
                     }
                     catch (boost::exception &e) {
-                        std::cerr << "Corrupted File Header";
+                        std::cerr << __FILE__ << "(" << __LINE__ << ")\n";
                         std::cerr << diagnostic_information_what(e) << std::endl;
                     }
 
                     break;
                 }
-                    // TODO: refactor later
-                case net::MsgType::FileHeader: {
-                    log() << msg;
-
-                    // Try to parse json string got from message body
-                    try {
-                        bj::object object{bj::parse(msg.body()).as_object()};
-                        _path.assign(_version_resolver.versionsDir() /
-                                     object.at("path").as_string());
-                        _file_size = static_cast<uintmax_t>(object.at("_file_size").as_int64());
-                        packages_to_wait = _file_size / net::MAX_BODY_SIZE + 1;
-                        _modification_time = object.at("_modification_time").as_int64();
-                    }
-                    catch (boost::exception &e) {
-                        std::cerr << "Corrupted File Header\n";
-                        std::cerr << diagnostic_information_what(e) << "\n";
-                    }
-
-                    // Check if folder for storing current file versions exists
-                    if (!bfs::exists(_path.parent_path()))
-                        // ..if not, create this folder
-                        if (!bfs::create_directories(_path.parent_path())) {
-                            log() << "Can't create versions directory";
-                            return;
-                        }
-
-                    _ofs.open(_path.string());
-                    if (!_ofs.is_open()) {
-                        log() << "Can't open ofstream";
-                        return;
-                    } else
-                        log() << "Opened file \'" << _path.string() << "\'";
-
-                    break;
-                }
-                case net::MsgType::FileTransfer: {
-                    log() << "Handling " << to_string(msg.header().msgType());
-                    if (!_ofs.is_open()) {
-                        log() << "Ofstream isn't opened";
-                        return;
-                    }
-                    _ofs << msg.body();
-                    --packages_to_wait;
-                    if (packages_to_wait <= 0) {
-                        log() << "Whole file transferred";
-                        _ofs.close();
-                        bfs::last_write_time(_path, _modification_time);
-                        _path.assign("");
-                        _file_size = 0;
-                        _modification_time = 0;
-                    }
-
-                    break;
-                }
-
                 default: {
-                    log() << "Handling default " << to_string(msg.header().msgType());
+                    log() << "Handling default";
+                    // Check if checking integrity process is completed
+                    if(_net_client._connection._files_in_process.empty())
+                        _blocked = false;
+
                     break;
                 }
             }
@@ -361,12 +320,6 @@ namespace vcs {
 
         // TODO: refactor
         bool _blocked{false};
-        size_t packages_to_wait = 0;
-        std::string _buffer;
-        std::ofstream _ofs;
-        bfs::path _path;
-        uintmax_t _file_size;
-        time_t _modification_time;
     };
 }
 

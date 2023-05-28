@@ -2,7 +2,6 @@
 #define GRADUATEWORK_CLI_HPP
 
 #include "../pch.h"
-#include "../Log.hpp"
 
 namespace cli {
     std::queue<std::string> split(const std::string &s) {

@@ -1,6 +1,8 @@
 #ifndef NETWORKING_MESSAGE_HPP
 #define NETWORKING_MESSAGE_HPP
 
+#include <utility>
+
 #include "../pch.h"
 
 namespace net {
@@ -156,8 +158,9 @@ namespace net {
             return _body.data();
         }
 
-        std::string &body() {
-            return _body;
+        void body(std::string body) {
+            _body = std::move(body);
+            _header.bodyLength(_body.size());
         }
 
         [[nodiscard]] const std::string &body() const {
@@ -185,7 +188,6 @@ namespace net {
     };
 
     constexpr size_t HEADER_SIZE{sizeof(Message::MessageHeader)};
-    constexpr size_t MAX_BODY_SIZE{1024 - HEADER_SIZE};
 }
 
 #endif //NETWORKING_MESSAGE_HPP

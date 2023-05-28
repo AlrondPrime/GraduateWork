@@ -10,7 +10,9 @@ namespace net {
     public:
         Client() :
                 _work(make_work_guard(_io_context)),
-                _connection(ba::ip::tcp::socket(_io_context), _io_context) {
+                _connection(ba::ip::tcp::socket(_io_context), _io_context,
+                        // TODO: REFACTOR LATER!!!
+                            R"(..\ClientStorage\.versions)") {
 
             _connection.setOnMessageHandler(
                     [this](const Message &message) { msgHandler(message); });
@@ -32,8 +34,8 @@ namespace net {
                               [this](std::error_code ec, const ba::ip::tcp::endpoint &endpoint) {
                                   if (!ec) {
                                       log() << "Connected to Server!";
-                                        _connection.readHeader();
-                                        _connection.processIncoming();
+                                      _connection.readHeader();
+                                      _connection.processIncoming();
                                   }
                               });
         }
@@ -83,8 +85,9 @@ namespace net {
         ba::executor_work_guard<boost::asio::io_context::executor_type> _work;
         ba::ip::tcp::resolver::results_type _endpoints;
         std::thread _context_thread;
-        Connection _connection;
         bfs::directory_entry _root_dir;
+    public:
+        Connection _connection;
     };
 }
 

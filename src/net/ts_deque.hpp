@@ -53,6 +53,14 @@ namespace net {
             _cv_blocking.notify_one();
         }
 
+        // Adds an item to back of Queue
+        void push_back(T &&item) {
+            std::scoped_lock lock(_deque_mutex);
+            _deque.emplace_back(std::move(item));
+            std::unique_lock<std::mutex> ul(_blocking_mutex);
+            _cv_blocking.notify_one();
+        }
+
         // Adds an item to front of Queue
         void push_front(const T &item) {
             std::scoped_lock lock(_deque_mutex);
