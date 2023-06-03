@@ -167,8 +167,8 @@ namespace vcs {
                     }
                 if(changed)
                     log() << "Observer found some changes";
-                else
-                     log() << "Observer didn't find any changes";
+                /*else
+                     log() << "Observer didn't find any changes";*/
 
                 std::this_thread::sleep_for(1s);
             }

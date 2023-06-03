@@ -34,8 +34,11 @@ namespace net {
                               [this](std::error_code ec, const ba::ip::tcp::endpoint &endpoint) {
                                   if (!ec) {
                                       log() << "Connected to Server!";
+                                      _connected = true;
                                       _connection.readHeader();
                                       _connection.processIncoming();
+                                  } else {
+                                      log() << "Can't connect to Server!";
                                   }
                               });
         }
@@ -47,10 +50,24 @@ namespace net {
         }
 
         void sendMsg(const Message &msg) {
+            if(!_connected){
+                log() << "Doesn't connected, sleeping";
+                std::this_thread::sleep_for(3s);
+                if(!_connected){
+                    log() << "Still isn't connected, going to fail";
+                }
+            }
             _connection.sendMsg(msg);
         }
 
         void sendMsg(Message &&msg) {
+            if(!_connected){
+                log() << "Doesn't connected, sleeping";
+                std::this_thread::sleep_for(3s);
+                if(!_connected){
+                    log() << "Still isn't connected, going to fail";
+                }
+            }
             _connection.sendMsg(std::move(msg));
         }
 
@@ -87,7 +104,9 @@ namespace net {
         std::thread _context_thread;
         bfs::directory_entry _root_dir;
     public:
+        // Connection field must be below io_context field!
         Connection _connection;
+        bool _connected{false};
     };
 }
 

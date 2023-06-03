@@ -46,9 +46,7 @@ namespace net {
             _acceptor.async_accept(
                     [this](boost::system::error_code ec, ba::ip::tcp::socket socket) {
                         if (!ec) {
-                            log() << "New Connection: " << ba::ip::detail::endpoint(
-                                    socket.remote_endpoint().address(), socket.remote_endpoint().port())
-                                    .to_string();
+                            log() << "New Connection: " << socket.remote_endpoint();
                             _connections.push_back(std::make_shared<Connection>(
                                     std::move(socket), _io_context, _versions_dir));
                             _connections.back()->setOnMessageHandler(

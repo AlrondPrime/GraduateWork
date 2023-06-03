@@ -99,26 +99,6 @@ namespace net {
 //            writeFileBody(root / relPath);
         }
 
-        /*void writeFileBody(const bfs::path &path) {
-            std::ifstream ifs{path.string()};
-
-            if (!ifs.is_open()) {
-                log() << "File cannot be opened.";
-                return;
-            }
-
-            std::string buffer;
-            buffer.resize(MAX_BODY_SIZE);
-            Message msg{Message::MessageHeader{MsgType::FileTransfer, MAX_BODY_SIZE}};
-
-            while (ifs) {
-                ifs.read(buffer.data(), MAX_BODY_SIZE);
-                msg.body() = buffer;
-                std::fill(buffer.begin(), buffer.end(), '\0');
-                sendMsg(msg);
-            }
-        }*/
-
         void writeFileBody(const bfs::path &root, const bfs::path &relPath) {
             std::ifstream ifs{(root / relPath).string()};
 
@@ -127,16 +107,10 @@ namespace net {
                 return;
             }
 
-            // JSON template that we use to send file over socket
-            // We need to calculate it's size to fit all Message data in MAX_BODY_SIZE
-            std::string_view json_template{R"({"path":"","data":""})"};
             std::string buffer;
             constexpr std::streamsize buffer_size{1024};
             bj::object body;
             Message msg{MsgType::FileTransfer};
-            /*log() << "\n\tjson template size:" << json_template.size()
-                  << "\n\tpath size:" << relPath.string().size()
-                  << "\n\tbuffer size:" << buffer_size;*/
 
             while (ifs) {
                 buffer.resize(buffer_size);

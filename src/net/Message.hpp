@@ -1,8 +1,6 @@
 #ifndef NETWORKING_MESSAGE_HPP
 #define NETWORKING_MESSAGE_HPP
 
-#include <utility>
-
 #include "../pch.h"
 
 namespace net {
@@ -14,33 +12,25 @@ namespace net {
             os << str;
         else
             for (auto ch: str) {
-                switch (ch) {
-                    case '\0': {
-                        os << "\\0";
-                        break;
-                    }
-                    default:
-                        os << ch;
-                }
+                if (ch == '\0')
+                    os << "\\0";
+                else
+                    os << ch;
             }
         os << '\'';
     }
 
     enum class MsgType {
-        PlainText,
         EmptyMessage,
         FileHeader,
         FileTransfer,
         RestoreVersion,
         CheckIntegrity,
         RequestFiles,
-        RequestedFiles
     };
 
     constexpr const char *to_string(MsgType msgType) {
         switch (msgType) {
-            case MsgType::PlainText:
-                return "PlainText";
             case MsgType::EmptyMessage:
                 return "EmptyMessage";
             case MsgType::FileHeader:
@@ -53,8 +43,6 @@ namespace net {
                 return "CheckIntegrity";
             case MsgType::RequestFiles:
                 return "RequestFiles";
-            case MsgType::RequestedFiles:
-                return "RequestedFiles";
             default:
                 throw std::runtime_error("Has no to_string cast for this enumeration item!");
         }

@@ -9,7 +9,7 @@ namespace logger {
     public:
         class LogSession {
         public:
-            explicit LogSession(const std::string &scope) : _scope(scope) {
+            explicit LogSession(const std::string_view &scope) : _scope(scope) {
                 _ss << "[" << _scope << "] ";
             }
 
@@ -22,9 +22,10 @@ namespace logger {
             }
 
             virtual ~LogSession() {
-                _ss << std::endl;
-//                std::scoped_lock lock(_mutex);
+                _ss << "\n";
+                std::scoped_lock lock(_mutex);
                 std::cout << _ss.str();
+                std::cout.flush();
             }
 
             friend LogSession &&operator<<(LogSession &&session, const std::string &msg) {
@@ -42,22 +43,27 @@ namespace logger {
                 return std::move(session);
             }
 
+            friend LogSession &&operator<<(LogSession &&session, const ba::ip::tcp::endpoint &ep) {
+                session._ss << ba::ip::detail::endpoint( ep.address(), ep.port()).to_string();
+                return std::move(session);
+            }
+
         private:
             std::stringstream _ss;
-            const std::string &_scope;
+            const std::string_view &_scope;
             std::mutex _mutex;
         };
 
         Logger() = default;
 
-        explicit Logger(std::string scope) : _scope(std::move(scope)) {}
+        explicit Logger(std::string_view scope) : _scope(scope) {}
 
         LogSession operator()() {
             return LogSession{_scope};
         }
 
     private:
-        std::string _scope;
+        const std::string_view _scope;
     };
 }
 
