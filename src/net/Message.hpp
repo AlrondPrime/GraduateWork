@@ -24,6 +24,7 @@ namespace net {
         EmptyMessage,
         FileHeader,
         FileTransfer,
+        EndOfFile,
         RestoreVersion,
         CheckIntegrity,
         RequestFiles,
@@ -37,6 +38,8 @@ namespace net {
                 return "FileHeader";
             case MsgType::FileTransfer:
                 return "FileTransfer";
+            case MsgType::EndOfFile:
+                return "EndOfFile";
             case MsgType::RestoreVersion:
                 return "RestoreVersion";
             case MsgType::CheckIntegrity:
@@ -76,8 +79,6 @@ namespace net {
                 msgHeader._body_length = 0;
 
             }
-
-            MessageHeader &operator=(const MessageHeader &msgHeader) = default;
 
             [[nodiscard]] bodyLength_type bodyLength() const {
                 return _body_length;
@@ -127,8 +128,6 @@ namespace net {
                 Message(MessageHeader{msgType}, std::move(body)) {
 
         }
-
-        Message &operator=(const Message &msg) = default;
 
         MessageHeader &header() {
             return _header;

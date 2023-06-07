@@ -15,7 +15,7 @@ namespace net {
                             R"(..\ClientStorage\.versions)") {
 
             _connection.setOnMessageHandler(
-                    [this](const Message &message) { msgHandler(message); });
+                    [this](const Message &message) { _msgHandler(message); });
         }
 
         ~Client() {
@@ -50,10 +50,10 @@ namespace net {
         }
 
         void sendMsg(const Message &msg) {
-            if(!_connected){
+            if (!_connected) {
                 log() << "Doesn't connected, sleeping";
                 std::this_thread::sleep_for(3s);
-                if(!_connected){
+                if (!_connected) {
                     log() << "Still isn't connected, going to fail";
                 }
             }
@@ -61,10 +61,10 @@ namespace net {
         }
 
         void sendMsg(Message &&msg) {
-            if(!_connected){
+            if (!_connected) {
                 log() << "Doesn't connected, sleeping";
                 std::this_thread::sleep_for(3s);
-                if(!_connected){
+                if (!_connected) {
                     log() << "Still isn't connected, going to fail";
                 }
             }
@@ -84,8 +84,8 @@ namespace net {
             _connection.resetOnMessageHandler();
         }
 
-        void msgHandler(const Message &msg) {
-            log() << "[Client]" << msg;
+        void _msgHandler(const Message &msg) {
+
         }
 
         const bfs::directory_entry &root() {
@@ -96,16 +96,19 @@ namespace net {
             _root_dir.assign(root);
         }
 
+        const Connection &connection() {
+            return _connection;
+        }
+
     private:
-        logger::Logger log{"Client"};
+        logger::Log log{"Client"};
         ba::io_context _io_context;
         ba::executor_work_guard<boost::asio::io_context::executor_type> _work;
         ba::ip::tcp::resolver::results_type _endpoints;
-        std::thread _context_thread;
-        bfs::directory_entry _root_dir;
-    public:
         // Connection field must be below io_context field!
         Connection _connection;
+        bfs::directory_entry _root_dir;
+        std::thread _context_thread;
         bool _connected{false};
     };
 }

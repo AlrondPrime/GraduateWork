@@ -49,12 +49,6 @@ operator^(const std::array<byte_type, BUFFER_SIZE> &array_from1,
 
 class FileMultiplier {
 public:
-    FileMultiplier()
-    = default;
-
-    /*FileMultiplier(std::ifstream &first, std::ifstream &second, std::ofstream &out)
-            : first_stream(std::move(first)), second_stream(std::move(second)), out_stream(std::move(out)) {}*/
-
     /** @brief Produces diff file which represents changes between first and second files
      * @details
      * The first two files do not change
@@ -67,15 +61,14 @@ public:
      * @param diff Resultant file which represents changes between first and second files
      */
     void multiplyFiles_8(const boost::filesystem::path &curr,
-                                const boost::filesystem::path &prev,
-                                const boost::filesystem::path &diff) {
-#ifdef _DEBUG
+                         const boost::filesystem::path &prev,
+                         const boost::filesystem::path &diff) {
+
         log() << "Multiplying files:"
-                    << "\n\tcurr=\t\'" << curr.string()
-                    << "\'\n\tprev=\t\'" << prev.string()
-                    << "\'\n\tdiff=\t\'" << diff.string()
-                    << "\'";
-#endif
+              << "\n\tcurr=\t\'" << curr.string()
+              << "\'\n\tprev=\t\'" << prev.string()
+              << "\'\n\tdiff=\t\'" << diff.string()
+              << "\'";
 
         if (!exists(curr) || !exists(prev)) {
             std::cerr << "Any of input files does not exist" << std::endl;
@@ -114,21 +107,21 @@ public:
                         out_buffer.rend(),
                         [](uint8_t val) { return val == '\0'; });
 
-                if (iter != out_buffer.rend())
+                if (iter != out_buffer.rend()) {
                     std::copy(out_buffer.begin(),
                               iter.base(),
                               std::ostream_iterator<char>{out_stream}
                     );
+                }
                 break;
             }
         }
 
-
         if (first_stream.eof()) {
-            log() << "First stream ended";
+//            log() << "First stream ended";
             out_stream << second_stream.rdbuf();
         } else if (second_stream.eof()) {
-            log() << "Second stream ended";
+//            log() << "Second stream ended";
             out_stream << first_stream.rdbuf();
         }
     }
@@ -136,7 +129,13 @@ public:
     /** @brief Produces mask file which represents changes between first and second files
      * @details Processes 1 byte at a time
      */
-    /*void multiplyFiles_1() {
+    void multiplyFiles_1(const boost::filesystem::path &curr,
+                         const boost::filesystem::path &prev,
+                         const boost::filesystem::path &diff) {
+        std::ifstream first_stream(absolute(curr).string());
+        std::ifstream second_stream(absolute(prev).string());
+        std::ofstream out_stream(absolute(diff).string());
+
         char first_buffer{}, second_buffer{}, out_buffer{};
 
         while (first_stream.read(&first_buffer, sizeof first_buffer) &&
@@ -153,13 +152,10 @@ public:
         } else {
             log() << "Something went wrong" << '\n';
         }
-    }*/
+    }
 
 private:
-/*    std::ifstream first_stream;
-    std::ifstream second_stream;
-    std::ofstream out_stream;*/
-    logger::Logger log{"FileMultiplier"};
+    logger::Log log{"FileMultiplier"};
 };
 
 #endif //GRADUATEWORK_FILEMULTIPLIER_HPP

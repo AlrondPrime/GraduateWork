@@ -58,7 +58,7 @@ namespace vcs {
             if (!bfs::exists(versions_folder) || !bfs::is_directory(versions_folder))
                 // ..if not, create this folder
                 if (!bfs::create_directories(versions_folder)) {
-                    std::cerr << "Can't create versionsDir folder" << std::endl;
+                    std::cerr << "Can't create versions folder" << std::endl;
                     return;
                 }
 
@@ -186,7 +186,7 @@ namespace vcs {
             ofs.close();
         }
 
-        void check_integrity(const bfs::path &) {
+        void checkIntegrity(const bfs::path &) {
             _blocked = true;
             _net_client.setOnMessageHandler(
                     [this](const net::Message &message) { _msgHandler(message); });
@@ -196,10 +196,9 @@ namespace vcs {
         }
 
         void _msgHandler(const net::Message &msg) {
-            log() << "Handling " << to_string(msg.header().msgType());
-
             switch (msg.header().msgType()) {
                 case net::MsgType::CheckIntegrity: {
+                    log() << "Processing message:\n" << msg;
                     bj::array paths;
                     bj::array paths_to_reply;
 
@@ -233,9 +232,8 @@ namespace vcs {
                     break;
                 }
                 default: {
-                    log() << "Handling default";
                     // Check if checking integrity process is completed
-                    if(_net_client._connection._files_in_process.empty())
+                    if(_net_client.connection()._files_in_process.empty())
                         _blocked = false;
 
                     break;
@@ -306,7 +304,7 @@ namespace vcs {
             return bfs::remove(path);
         }
 
-        logger::Logger log{"VCS"};
+        logger::Log log{"VCS"};
         std::string _host{"localhost"};
         uint16_t _port{60000};
         FileMultiplier _file_multiplier;

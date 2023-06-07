@@ -11,8 +11,7 @@ namespace net {
     struct FileInProcess {
         bfs::path _path{};
         std::ofstream _ofs{};
-        size_t _size_to_wait{};
-        uintmax_t _file_size{};
+//        uintmax_t _file_size{};
         time_t _modification_time{};
     };
 
@@ -40,6 +39,7 @@ namespace net {
 
         /// @details Asynchronous function
         void sendMsg(const Message &msg) {
+            log() << "Sending message:\n" << msg;
             ba::post(_io_context,
                      [this, msg]() {
 
@@ -52,6 +52,7 @@ namespace net {
 
         /// @details Asynchronous function
         void sendMsg(Message &&msg) {
+            log() << "Sending message:\n" << msg;
             ba::post(_io_context,
                      [this, msg]() {
                          bool writeInProcess = !_msg_queue_out.empty();
@@ -84,11 +85,11 @@ namespace net {
 
     private:
         void writeFileHeader(const bfs::path &root, const bfs::path &relPath) {
-            auto file_size = bfs::file_size(root / relPath);
+//            auto file_size = bfs::file_size(root / relPath);
             auto modification_time = bfs::last_write_time(root / relPath);
             bj::object object{
                     {"path",              relPath.string()},
-                    {"file_size",         file_size},
+//                    {"file_size",         file_size},
                     {"modification_time", modification_time}
             };
             auto body{serialize(object)};
@@ -96,7 +97,6 @@ namespace net {
             sendMsg(std::move(msg));
 
             writeFileBody(root, relPath);
-//            writeFileBody(root / relPath);
         }
 
         void writeFileBody(const bfs::path &root, const bfs::path &relPath) {
@@ -117,16 +117,18 @@ namespace net {
                 ifs.read(buffer.data(), buffer_size);
                 buffer.resize(ifs.gcount());
                 body.emplace("path", relPath.string());
-                log() << "\'" << buffer << "\'";
                 body.emplace("data", buffer);
                 assert(body.size() == 2);
-                log() << "\'" << body.at("data").as_string().c_str() << "\'";
                 msg.body(bj::serialize(body));
-                log() << "\'" << msg.body() << "\'";
                 body.clear();
-                log() << msg;
                 sendMsg(msg);
             }
+
+            Message eof_msg{MsgType::EndOfFile};
+            body.emplace("path", relPath.string());
+            eof_msg.body(bj::serialize(body));
+            body.clear();
+            sendMsg(eof_msg);
         }
 
     public:
@@ -136,7 +138,7 @@ namespace net {
                            ba::buffer(&_tempMsgIn.header(), net::HEADER_SIZE),
                            [this](boost::system::error_code ec, std::size_t length) {
                                if (!ec) {
-                                   log() << "Read Header Done";
+//                                   log() << "Read Header Done";
                                    if (_tempMsgIn.bodyLength() > 0) {
                                        _tempMsgIn.resize(_tempMsgIn.bodyLength());
                                        readBody();
@@ -162,7 +164,7 @@ namespace net {
                            ba::buffer(_tempMsgIn.data(), _tempMsgIn.bodyLength()),
                            [this](boost::system::error_code ec, std::size_t length) {
                                if (!ec) {
-                                   log() << "Read Body Done";
+//                                   log() << "Read Body Done";
                                    _msg_queue_in.push_back(_tempMsgIn);
                                    readHeader();
                                } else {
@@ -179,8 +181,8 @@ namespace net {
                                        net::HEADER_SIZE),
                             [this](boost::system::error_code ec, std::size_t length) {
                                 if (!ec) {
-                                    log() << "Write Header Done"
-                                          << " with length = " << length;
+                                    /*log() << "Write Header Done"
+                                          << " with length = " << length;*/
                                     if (_msg_queue_out.front().bodyLength() > 0) {
                                         writeBody();
                                     } else {
@@ -202,8 +204,8 @@ namespace net {
                                        _msg_queue_out.front().bodyLength()),
                             [this](boost::system::error_code ec, std::size_t length) {
                                 if (!ec) {
-                                    log() << "Write Body Done"
-                                          << " with length = " << length;
+                                    /*log() << "Write Body Done"
+                                          << " with length = " << length;*/
                                     _msg_queue_out.pop_front();
                                     if (!_msg_queue_out.empty())
                                         writeHeader();
@@ -224,18 +226,15 @@ namespace net {
         }
 
         void _msgHandler(const Message &msg) {
-            log() << "Handling " << to_string(msg.header().msgType());
-            log() << msg;
-
             switch (msg.header().msgType()) {
                 case net::MsgType::FileHeader: {
+                    log() << "Processing message:\n" << msg;
                     net::FileInProcess fileInProcess;
                     // Try to parse json string got from message body
                     try {
                         bj::object object{bj::parse(msg.body()).as_object()};
                         fileInProcess._path.assign(object.at("path").as_string());
-                        fileInProcess._file_size = static_cast<uintmax_t>(object.at("file_size").as_int64());
-                        fileInProcess._size_to_wait = fileInProcess._file_size;
+//                        fileInProcess._file_size = static_cast<uintmax_t>(object.at("file_size").as_int64());
                         fileInProcess._modification_time = object.at("modification_time").as_int64();
 
                     }
@@ -260,12 +259,13 @@ namespace net {
                         return;
                     }
 
-                    log() << "Opened file \'" << (_root_dir / fileInProcess._path).string() << "\'";
+                    log() << "Opened file on write \'" << (_root_dir / fileInProcess._path).string() << "\'";
                     _files_in_process.push_back(std::move(fileInProcess));
 
                     break;
                 }
                 case net::MsgType::FileTransfer: {
+                    log() << "Processing message:\n" << msg;
                     bfs::path path;
                     std::string data;
 
@@ -280,45 +280,78 @@ namespace net {
                         std::cerr << diagnostic_information_what(e) << "\n";
                     }
 
-                    // Search for desired file and store data for it
+                    // Search for desired FileInProcess struct and store data in it
                     int index_found{-1};
-                    bool should_remove{false};
                     for (int i{}; i < _files_in_process.size(); ++i) {
+                        log() << __LINE__;
                         auto &item{_files_in_process.at(i)};
-                        if (item._path == path) {
+                        if (item._path.string() == path.string()) {
                             index_found = i;
                             if (!item._ofs.is_open()) {
-                                log() << "Ofstream for file \'" << (_root_dir / item._path).string()
+                                err() << "Ofstream for file \'" << (_root_dir / item._path).string()
                                       << "\' isn't opened";
                                 return;
                             }
 
                             item._ofs << data;
-                            item._size_to_wait -= data.size();
-                            if (item._size_to_wait <= 0) {
-                                log() << "Whole file \'" << (_root_dir / item._path).string() << "\' transferred";
-                                item._ofs.close();
-                                bfs::last_write_time((_root_dir / item._path), item._modification_time);
-                                should_remove = true;
-                            }
 
                             break;
                         }
                     }
 
-                    // If any file is whole transferred
-                    // We should remove it from container of FilesInProcess items
-                    if (should_remove)
-                        _files_in_process.erase(_files_in_process.begin() + index_found);
-                    else {
-                        log() << "Can't find Struct for file \'" << path.string() << "\'";
-                        return;
+                    if (index_found == -1) {
+                        err() << "Can't find Struct for file \'" << path.string() << "\'";
                     }
 
                     break;
                 }
+                case MsgType::EndOfFile: {
+                    log() << "Processing message:\n" << msg;
+                    bfs::path path;
+
+                    try {
+                        bj::object object{bj::parse(msg.body()).as_object()};
+                        path = object.at("path").as_string();
+                    }
+                    catch (boost::exception &e) {
+                        std::cerr << __FILE__ << "(" << __LINE__ << ")\n";
+                        std::cerr << "Can't parse this: \'" << msg << "\'\n";
+                        std::cerr << diagnostic_information_what(e) << "\n";
+                    }
+
+                    // Search for desired FileInProcess struct and store data in it
+                    int index_found{-1};
+                    for (int i{}; i < _files_in_process.size(); ++i) {
+                        auto &item{_files_in_process.at(i)};
+                        if (item._path.string() == path.string()) {
+                            index_found = i;
+                            if (!item._ofs.is_open()) {
+                                err() << "Ofstream for file \'" << (_root_dir / item._path).string()
+                                      << "\' isn't opened";
+                                return;
+                            }
+
+                            log() << "Whole file \'" << (_root_dir / item._path).string() << "\' transferred";
+                            item._ofs.close();
+                            bfs::last_write_time((_root_dir / item._path), item._modification_time);
+
+                            break;
+                        }
+                    }
+
+                    if (index_found == -1) {
+                        err() << "Can't find Struct for file \'" << path.string() << "\'";
+                        for (auto &item: _files_in_process) {
+                            log() << "\t\'" << item._path.string() << "\'";
+                        }
+                    } else {
+                        _files_in_process.erase(_files_in_process.begin() + index_found);
+                    }
+
+                    break;
+                }
+
                 default: {
-                    log() << "Handling default";
                     break;
                 }
             }
@@ -341,7 +374,8 @@ namespace net {
         ba::io_context &_io_context;
         std::function<void(const Message &)> _onMessageHandler;
         std::thread _thr;
-        logger::Logger log{"Connection"};
+        logger::Log log{"Connection"};
+        logger::Err err{"Connection"};
         bfs::path _root_dir;
     };
 }

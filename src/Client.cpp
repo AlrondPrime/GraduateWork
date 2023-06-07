@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     cli.addBranch("update", [&](const bfs::path &path) { version_controller.update(path); });
     cli.addBranch("restore", [&](const bfs::path &path) { version_controller.restore(path); });
     cli.addBranch("observe", [&](const bfs::path &path) { version_controller.addObservable(path); });
-    cli.addBranch("checkIntegrity", [&](const bfs::path &path) { version_controller.check_integrity(path); });
+    cli.addBranch("checkIntegrity", [&](const bfs::path &path) { version_controller.checkIntegrity(path); });
     cli.resolveArgs(argc, argv);
 
     // Going into endless cli loop

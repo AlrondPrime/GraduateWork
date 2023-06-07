@@ -60,11 +60,10 @@ namespace net {
                     });
         }
 
-        void _msgHandler(const Message &msg) {
-            log() << "Handling " << to_string(msg.header().msgType());
-
+            void _msgHandler(const Message &msg) {
             switch (msg.header().msgType()) {
                 case MsgType::RestoreVersion: {
+                    log() << "Processing message:\n" << msg;
                     bfs::path path{_versions_dir.path() / msg.body()};
                     if (!bfs::exists(path)) {
                         log() << "Path or directory \'" << path.string() << "\' does not exist";
@@ -94,6 +93,7 @@ namespace net {
                     break;
                 }
                 case MsgType::CheckIntegrity: {
+                    log() << "Processing message:\n" << msg;
                     bj::array paths;
                     for (auto &path:
                             bfs::recursive_directory_iterator(_versions_dir)) {
@@ -102,8 +102,8 @@ namespace net {
                             // is subdir of root server folder
                             (++path.path().lexically_relative(_versions_dir).begin())->string().front() != '.') {
 
-                            log() << "Emplace back \'"
-                                  << path.path().lexically_relative(_versions_dir).string() << "\'";
+                            /*log() << "Emplace back \'"
+                                  << path.path().lexically_relative(_versions_dir).string() << "\'";*/
                             paths.emplace_back(path.path().lexically_relative(_versions_dir).string());
                         }
                     }
@@ -115,6 +115,7 @@ namespace net {
                 }
 
                 case MsgType::RequestFiles: {
+                    log() << "Processing message:\n" << msg;
                     bj::array paths;
 
                     try {
@@ -139,14 +140,13 @@ namespace net {
                 }
 
                 default: {
-                    log() << "Handling default";
                     break;
                 }
             }
         }
 
     private:
-        logger::Logger log{"Server"};
+        logger::Log log{"Server"};
         ba::io_context _io_context;
         ba::executor_work_guard<ba::io_context::executor_type> _work;
         ba::ip::tcp::endpoint _endpoint;
